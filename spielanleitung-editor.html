@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spielanleitung-Editor</title>
+<style>
+/* ===== CSS VARIABLEN - werden per JS je Spiel überschrieben ===== */
+:root {
+  --primary: #2C5F2E;
+  --secondary: #4A8F4C;
+  --accent: #F0A500;
+  --background: #F4F8F4;
+  --card: #FFFFFF;
+  --text: #1a2a1a;
+  --border: #2C5F2E;
+  --hint-bg: #EDF7ED;
+  --counter-ok: #2C7A2E;
+  --counter-warn: #D97706;
+  --counter-max: #DC2626;
+}
+
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+body {
+  font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+  background: var(--background);
+  color: var(--text);
+  line-height: 1.55;
+}
+
+/* ===== EDITOR LAYOUT ===== */
+.editor-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px 16px 60px;
+}
+
+/* ===== HEADER ===== */
+.editor-header {
+  background: var(--primary);
+  color: #fff;
+  border-radius: 12px;
+  padding: 20px 24px 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  transition: background 0.4s;
+}
+.editor-header h1 {
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.editor-header p {
+  font-size: 0.88rem;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+
+/* ===== SPIELAUSWAHL ===== */
+.game-select-wrap {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.game-select-wrap label {
+  display: block;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+#gameSelect {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 1rem;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.3s;
+}
+#gameSelect:focus { outline: none; border-color: var(--accent); }
+
+.game-type-badge {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+/* ===== GESAMTZÄHLER ===== */
+.total-counter-bar {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+}
+.total-counter-bar span { font-size: 0.88rem; color: var(--text); }
+.total-counter-bar strong { font-size: 1rem; color: var(--primary); }
+.total-progress {
+  flex: 1;
+  min-width: 120px;
+  height: 10px;
+  background: #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.total-progress-fill {
+  height: 100%;
+  background: var(--secondary);
+  border-radius: 5px;
+  transition: width 0.3s, background 0.3s;
+}
+.total-warn { color: var(--counter-max) !important; font-weight: 700; }
+
+/* ===== ABSCHNITT-KARTE ===== */
+.section-card {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.section-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.11); }
+
+.section-card h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-num {
+  background: var(--primary);
+  color: #fff;
+  border-radius: 50%;
+  width: 26px; height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ===== HINWEIS-BOX ===== */
+.hint-box {
+  background: var(--hint-bg);
+  border-left: 4px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 0.84rem;
+  color: #333;
+}
+.hint-box strong { color: var(--primary); display: block; margin-bottom: 4px; }
+.hint-box ul { padding-left: 18px; margin-top: 4px; }
+.hint-box ul li { margin-bottom: 2px; }
+.extra-hints { display: none; }
+.show-extra .extra-hints { display: block; }
+
+/* ===== TEXTAREA ===== */
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #ccc;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.93rem;
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color 0.3s;
+  background: #fafafa;
+  color: var(--text);
+}
+textarea:focus { outline: none; border-color: var(--accent); background: #fff; }
+textarea.small { min-height: 46px; }
+
+/* ===== ZEICHENZÄHLER ===== */
+.counter {
+  text-align: right;
+  font-size: 0.78rem;
+  color: #777;
+  margin-top: 4px;
+  transition: color 0.3s;
+}
+.counter.warn { color: var(--counter-warn); font-weight: 600; }
+.counter.max { color: var(--counter-max); font-weight: 700; }
+
+/* ===== INPUT FELDER ===== */
+input[type="text"], input[type="number"] {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid #ccc;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.93rem;
+  background: #fafafa;
+  color: var(--text);
+  transition: border-color 0.3s;
+}
+input:focus { outline: none; border-color: var(--accent); background: #fff; }
+
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.field-row.three { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 600px) {
+  .field-row, .field-row.three { grid-template-columns: 1fr; }
+}
+.field-group label {
+  display: block;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 5px;
+}
+
+/* ===== AUTO-BILD BOX ===== */
+.auto-image-box {
+  margin: 12px 0;
+  background: var(--background);
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+}
+.auto-image-box img {
+  max-width: 100%;
+  max-height: 280px;
+  border-radius: 6px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 6px;
+}
+.auto-image-box .img-placeholder {
+  padding: 24px;
+  color: #999;
+  font-size: 0.82rem;
+  font-style: italic;
+}
+.img-caption {
+  font-size: 0.78rem;
+  color: #666;
+  text-align: center;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* ===== UPLOAD-BEREICH ===== */
+.upload-section {
+  margin-top: 14px;
+  border: 2px dashed var(--accent);
+  border-radius: 10px;
+  padding: 14px;
+  background: #fffdf5;
+}
+.upload-section .upload-title {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--primary);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.upload-section .upload-task {
+  font-size: 0.82rem;
+  color: #555;
+  margin-bottom: 10px;
+  line-height: 1.45;
+}
+.upload-section input[type="file"] {
+  font-size: 0.83rem;
+  width: 100%;
+}
+.upload-preview img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 6px;
+  margin-top: 8px;
+  object-fit: contain;
+  border: 1px solid #ddd;
+}
+
+/* ===== BUTTONS ===== */
+.btn-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--background);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.btn {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  white-space: nowrap;
+}
+.btn:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-secondary { background: #eee; color: #333; border: 1.5px solid #ccc; }
+.btn-danger { background: #DC2626; color: #fff; }
+
+/* ===== WARNUNGEN ===== */
+.warn-box {
+  display: none;
+  background: #FEF3C7;
+  border: 2px solid #D97706;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: #92400E;
+  margin-bottom: 14px;
+}
+.warn-box.visible { display: block; }
+.error-box {
+  display: none;
+  background: #FEE2E2;
+  border: 2px solid #DC2626;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: #991B1B;
+  margin-bottom: 14px;
+}
+.error-box.visible { display: block; }
+.overflow-warn { display: none; font-size: 0.8rem; color: #DC2626; font-weight: 600; margin-top: 6px; }
+.overflow-warn.visible { display: block; }
+
+/* ===== DRUCKVORSCHAU TOGGLE ===== */
+.preview-toggle {
+  margin-bottom: 18px;
+}
+.preview-panel {
+  display: none;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: #e8e8e8;
+  overflow: auto;
+}
+.preview-panel.visible { display: block; }
+
+/* ===== FORTSCHRITTS-ANZEIGE ===== */
+.progress-dots {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #ddd;
+  border: 2px solid #bbb;
+  transition: background 0.3s;
+}
+.dot.filled { background: var(--secondary); border-color: var(--primary); }
+
+/* ===== SAVE TOAST ===== */
+.toast {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  background: var(--primary);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s, transform 0.3s;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* ===== SECTION DIVIDER ===== */
+.section-divider {
+  border: none;
+  border-top: 2px dashed var(--border);
+  margin: 8px 0 14px;
+  opacity: 0.35;
+}
+
+/* ===== SPIELTYP-HINWEISE (Cluedo vs Monopoly) ===== */
+.cluedo-hints { display: none; }
+.monopoly-hints { display: none; }
+.cluedo-mode .cluedo-hints { display: block; }
+.monopoly-mode .monopoly-hints { display: block; }
+
+/* ===== DRUCKLAYOUT ===== */
+.print-preview-wrap { display: none; }
+@media screen {
+  .print-preview-wrap.visible { display: block; }
+}
+
+.print-page {
+  width: 210mm;
+  min-height: 297mm;
+  max-height: 297mm;
+  padding: 14mm 16mm 12mm;
+  box-sizing: border-box;
+  background: #fff;
+  margin: 0 auto 12px;
+  box-shadow: 0 3px 16px rgba(0,0,0,0.18);
+  overflow: hidden;
+  position: relative;
+  font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+  font-size: 9.5pt;
+  line-height: 1.45;
+  color: #111;
+}
+
+.print-page .p-header {
+  border-bottom: 3px solid var(--primary);
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.print-page .p-header .p-gamename {
+  font-size: 10pt;
+  font-weight: 700;
+  color: var(--primary);
+}
+.print-page .p-header .p-pagenum {
+  font-size: 8pt;
+  color: #888;
+}
+.p-footer {
+  position: absolute;
+  bottom: 8mm;
+  left: 16mm; right: 16mm;
+  border-top: 1px solid #ddd;
+  padding-top: 4px;
+  font-size: 7.5pt;
+  color: #999;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Deckblatt */
+.cover-game-title {
+  font-size: 28pt;
+  font-weight: 900;
+  color: var(--primary);
+  text-align: center;
+  margin-bottom: 4mm;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+.cover-subtitle {
+  text-align: center;
+  font-size: 10pt;
+  color: var(--secondary);
+  margin-bottom: 8mm;
+}
+.cover-board-img {
+  display: block;
+  max-width: 160mm;
+  max-height: 95mm;
+  object-fit: contain;
+  margin: 0 auto 8mm;
+  border-radius: 6px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+}
+.cover-board-placeholder {
+  width: 160mm;
+  height: 90mm;
+  background: #f0f0f0;
+  border-radius: 6px;
+  margin: 0 auto 8mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+  font-size: 9pt;
+  border: 2px dashed #ccc;
+}
+.cover-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 20px;
+  max-width: 140mm;
+  margin: 0 auto;
+}
+.cover-meta-item { font-size: 9pt; }
+.cover-meta-item strong { color: var(--primary); }
+.cover-accent-bar {
+  height: 6px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  border-radius: 3px;
+  margin: 8mm 0 6mm;
+}
+
+/* Print section headings */
+.p-h2 {
+  font-size: 13pt;
+  font-weight: 700;
+  color: var(--primary);
+  border-left: 5px solid var(--accent);
+  padding-left: 8px;
+  margin-bottom: 5mm;
+  margin-top: 4mm;
+}
+.p-h3 {
+  font-size: 10.5pt;
+  font-weight: 700;
+  color: var(--secondary);
+  margin-bottom: 3mm;
+  margin-top: 4mm;
+}
+.p-text {
+  font-size: 9.5pt;
+  line-height: 1.5;
+  margin-bottom: 3mm;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.p-empty {
+  color: #bbb;
+  font-style: italic;
+  font-size: 9pt;
+}
+
+/* Print images */
+.p-img-wrap {
+  text-align: center;
+  margin: 3mm 0 2mm;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.p-img-wrap img {
+  max-width: 80mm;
+  max-height: 55mm;
+  object-fit: contain;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+.p-img-wrap.wide img {
+  max-width: 120mm;
+  max-height: 70mm;
+}
+.p-img-caption {
+  font-size: 8pt;
+  color: #888;
+  font-style: italic;
+  margin-top: 2px;
+}
+.p-img-missing {
+  display: inline-block;
+  padding: 8px 16px;
+  background: #f5f5f5;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  color: #bbb;
+  font-size: 8pt;
+  font-style: italic;
+  margin: 4px 0;
+}
+
+/* Two-column print layout */
+.p-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8mm;
+  align-items: start;
+}
+
+/* Print page overflow warning */
+.overflow-indicator {
+  display: none;
+  background: #FEE2E2;
+  color: #991B1B;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 8pt;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 4px;
+}
+.overflow-indicator.visible { display: block; }
+
+/* Abschlussbox */
+.final-box {
+  border: 3px solid var(--primary);
+  border-radius: 10px;
+  padding: 10mm 12mm;
+  text-align: center;
+  background: var(--hint-bg, #EDF7ED);
+  margin-top: 6mm;
+}
+.final-box p { font-size: 12pt; font-weight: 700; color: var(--primary); margin-bottom: 4mm; }
+.final-box small { font-size: 9pt; color: #555; }
+
+/* @media PRINT */
+@media print {
+  body > *:not(.print-preview-wrap) { display: none !important; }
+  .print-preview-wrap { display: block !important; }
+  .print-page {
+    box-shadow: none !important;
+    margin: 0 !important;
+    page-break-after: always;
+    break-after: page;
+  }
+  .overflow-indicator { display: none !important; }
+  @page { size: A4 portrait; margin: 0; }
+}
+</style>
+</head>
+<body>
+<div class="toast" id="toast">✓ Gespeichert</div>
+
+<!-- EDITOR-BEREICH -->
+<div class="editor-wrap no-print" id="editorWrap">
+
+  <div class="editor-header" id="editorHeader">
+    <h1 id="headerTitle">📋 Spielanleitung-Editor</h1>
+    <p>Wählt zuerst euer Spiel aus. Der Editor passt sich automatisch an.</p>
+  </div>
+
+  <!-- Spielauswahl -->
+  <div class="game-select-wrap">
+    <label for="gameSelect">🎲 Wählt euer Spiel:</label>
+    <select id="gameSelect">
+      <option value="">-- Bitte Spiel auswählen --</option>
+      <option value="officePanik">The Office Panic</option>
+      <option value="numeria">Numeria</option>
+      <option value="imperium">Imperium der Zahlen</option>
+      <option value="umwelt">Umweltspiel</option>
+      <option value="math">Math</option>
+      <option value="matherennen">Matherennen</option>
+    </select>
+    <span class="game-type-badge" id="gameTypeBadge" style="display:none"></span>
+  </div>
+
+  <!-- Warnungen -->
+  <div class="warn-box" id="lengthWarn">⚠️ <strong>Die Anleitung ist zu lang!</strong> Bitte kürzt den Text, damit die Spielanleitung gut lesbar bleibt.</div>
+  <div class="error-box" id="pageOverflowWarn"></div>
+
+  <!-- Gesamtzeichenzähler -->
+  <div class="total-counter-bar">
+    <span>Gesamtlänge der Anleitung:</span>
+    <strong id="totalCountDisplay">0 / 15.500 Zeichen</strong>
+    <div class="total-progress">
+      <div class="total-progress-fill" id="totalProgressFill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- Fortschrittspunkte -->
+  <div class="progress-dots" id="progressDots">
+    <div class="dot" id="dot0" title="Deckblatt"></div>
+    <div class="dot" id="dot1" title="Spielidee"></div>
+    <div class="dot" id="dot2" title="Spielziel"></div>
+    <div class="dot" id="dot3" title="Lernziel"></div>
+    <div class="dot" id="dot4" title="Spielmaterial"></div>
+    <div class="dot" id="dot5" title="Vorbereitung"></div>
+    <div class="dot" id="dot6" title="Spielablauf"></div>
+    <div class="dot" id="dot7" title="Felder & Karten"></div>
+    <div class="dot" id="dot8" title="Aufgaben & Lösungen"></div>
+    <div class="dot" id="dot9" title="Sonderregeln"></div>
+    <div class="dot" id="dot10" title="Spielende"></div>
+    <div class="dot" id="dot11" title="Beispielzug"></div>
+    <div class="dot" id="dot12" title="Varianten"></div>
+  </div>
+
+  <!-- Aktions-Buttons -->
+  <div class="btn-bar no-print">
+    <button class="btn btn-primary" onclick="updatePreview()">👁 Vorschau aktualisieren</button>
+    <button class="btn btn-accent" onclick="window.print()">🖨 Drucken / Als PDF speichern</button>
+    <button class="btn btn-secondary" onclick="saveData()">💾 Zwischenspeichern</button>
+    <button class="btn btn-danger" onclick="confirmReset()">🗑 Zurücksetzen</button>
+  </div>
+
+  <!-- ===== ABSCHNITT 0: DECKBLATT ===== -->
+  <div class="section-card" id="sec-cover">
+    <h2><span class="section-num">◎</span> Deckblatt</h2>
+    <div class="hint-box">
+      <strong>Was braucht ihr für das Deckblatt?</strong>
+      Füllt alle Felder aus – der Spielname wird automatisch aus eurer Auswahl übernommen.
+    </div>
+    <div class="field-row">
+      <div class="field-group">
+        <label for="f_teammitglieder">👥 Teammitglieder</label>
+        <input type="text" id="f_teammitglieder" maxlength="120" data-limit="120" placeholder="z. B. Anna, Ben, Chris" oninput="onFieldInput(this,'c-team')">
+        <div class="counter" id="c-team">0 / 120 Zeichen</div>
+      </div>
+      <div class="field-group">
+        <label for="f_fachthema">📚 Fach / Thema</label>
+        <input type="text" id="f_fachthema" maxlength="120" data-limit="120" placeholder="z. B. Mathematik – Bruchrechnung" oninput="onFieldInput(this,'c-fach')">
+        <div class="counter" id="c-fach">0 / 120 Zeichen</div>
+      </div>
+    </div>
+    <div class="field-row three">
+      <div class="field-group">
+        <label for="f_zielgruppe">🎯 Zielgruppe / Klasse</label>
+        <input type="text" id="f_zielgruppe" maxlength="120" data-limit="120" placeholder="z. B. Klasse 8, Wirtschaftsschule" oninput="onFieldInput(this,'c-ziel')">
+        <div class="counter" id="c-ziel">0 / 120 Zeichen</div>
+      </div>
+      <div class="field-group">
+        <label for="f_spieleranzahl">👤 Spieleranzahl</label>
+        <input type="text" id="f_spieleranzahl" maxlength="80" data-limit="80" placeholder="z. B. 2–4 Spieler" oninput="onFieldInput(this,'c-spa')">
+        <div class="counter" id="c-spa">0 / 80 Zeichen</div>
+      </div>
+      <div class="field-group">
+        <label for="f_spieldauer">⏱ Spieldauer</label>
+        <input type="text" id="f_spieldauer" maxlength="80" data-limit="80" placeholder="z. B. ca. 30–45 Minuten" oninput="onFieldInput(this,'c-dauer')">
+        <div class="counter" id="c-dauer">0 / 80 Zeichen</div>
+      </div>
+    </div>
+    <!-- Auto-Bild Spielbrett -->
+    <div class="auto-image-box">
+      <img id="cover-board-img" src="" alt="Spielbrett" style="display:none" onerror="this.style.display='none';document.getElementById('cover-board-placeholder').style.display='block'">
+      <div class="img-placeholder" id="cover-board-placeholder">Bitte zuerst ein Spiel auswählen – das Spielbrett erscheint hier automatisch.</div>
+      <div class="img-caption">Euer Spielbrett</div>
+    </div>
+  </div>
+
+  <!-- ===== ABSCHNITT 1: SPIELIDEE ===== -->
+  <div class="section-card" id="sec-1">
+    <h2><span class="section-num">1</span> Spielidee</h2>
+    <div class="hint-box">
+      <strong>💡 Hilfsfragen:</strong>
+      <ul>
+        <li>Worum geht es in eurem Spiel?</li>
+        <li>Gibt es eine Geschichte oder Ausgangssituation?</li>
+        <li>Was ist das Besondere an eurem Spiel?</li>
+      </ul>
+      <div class="extra-hints cluedo-hints">
+        <hr style="margin:6px 0;border-color:#ddd">
+        <strong>🔍 Cluedo-Hinweise:</strong>
+        <ul>
+          <li>Welche Geschichte oder welches Rätsel liegt hinter dem Spiel?</li>
+          <li>Welche Rollen oder Figuren gibt es?</li>
+          <li>Was muss aufgeklärt oder herausgefunden werden?</li>
+        </ul>
+      </div>
+      <div class="extra-hints monopoly-hints">
+        <hr style="margin:6px 0;border-color:#ddd">
+        <strong>🏦 Monopoly-Hinweise:</strong>
+        <ul>
+          <li>Auf welchem Spielfeld oder in welcher Spielwelt spielt das Spiel?</li>
+          <li>Was ist das Thema (Schule, Umwelt, Zahlen, Büro ...)?</li>
+        </ul>
+      </div>
+    </div>
+    <textarea id="f_spielidee" maxlength="900" data-limit="900" data-dot="1" rows="5"
+      placeholder="Beschreibt eure Spielidee in eigenen Worten ..." oninput="onTextarea(this,'c-spielidee')"></textarea>
+    <div class="counter" id="c-spielidee">0 / 900 Zeichen</div>
+  </div>
+
+  <!-- ===== ABSCHNITT 2: ZIEL DES SPIELS ===== -->
+  <div class="section-card" id="sec-2">
+    <h2><span class="section-num">2</span> Ziel des Spiels</h2>
+    <div class="hint-box">
+      <strong>💡 Hilfsfragen:</strong>
+      <ul>
+        <li>Wann gewinnt man?</li>
+        <li>Was muss man sammeln, erreichen, lösen, kaufen oder herausfinden?</li>
+      </ul>
+      <div class="extra-hints cluedo-hints">
+        <hr style="margin:6px 0;border-color:#ddd">
+        <ul>
+          <li>Welcher Verdacht muss als Erster korrekt bestätigt werden?</li>
+          <li>Was passiert, wenn man eine falsche Lösung nennt?</li>
+        </ul>
+      </div>
+      <div class="extra-hints monopoly-hints">
+        <hr style="margin:6px 0;border-color:#ddd">
+        <ul>
+          <li>Wer hat am Ende die meisten Punkte / das meiste Geld / die meisten Felder?</li>
+          <li>Gibt es ein Zielfeld, das man erreichen muss?</li>
+        </ul>
+      </div>
+    </div>
+    <textarea id="f_spielziel" maxlength="600" data-limit="600" data-dot="2" rows="4"
+      placeholder="Das Ziel des Spiels ist ..." oninput="onTextarea(this,'c-spielziel')"></textarea>
+    <div class="counter" id="c-spielziel">0 / 600 Zeichen</div>
+  </div>
+
+  <!-- ===== ABSCHNITT 3: LERNZIEL ===== -->
+  <div class="section-card" id="sec-3">
+    <h2><span class="section-num">3</span> Lernziel</h2>
+    <div class="hint-box">
+      <strong>💡 Hilfsfragen:</strong>
+      <ul>
+        <li>Was sollen die Spielerinnen und Spieler durch das Spiel üben oder lernen?</li>
+        <li>Zu welchem Fach oder Thema gehört das Spiel?</li>
+      </ul>
+    </div>
+    <textarea id="f_lernziel" maxlength="500" data-limit="500" data-dot="3" rows="3"
+      placeholder="Durch dieses Spiel übt man ..." oninput="onTextarea(this,'c-lernziel')"></textarea>
+    <div class="counter" id="c-lernziel">0 / 500 Zeichen</div>
+  </div>
+
+  <!-- ===== ABSCHNITT 4: SPIELMATERIAL ===== -->
+  <div class="section-card" id="sec-4">
+    <h2><span class="section-num">4</span> Spielmaterial</h2>
+    <div class="hint-box">
+      <strong>💡 Hilfsfragen:</strong>
+      <ul>
+        <li>Listet alle Materialien auf, die man zum Spielen braucht.</li>
+        <li>Wie viele Karten, Würfel, Spielfiguren, Spielgeld ...?</li>
+      </ul>
+    </div>
+    <textarea id="f_material" maxlength="300" data-limit="300" data-dot="4" rows="3"
+      placeholder="1 Spielbrett&#10;__ Spielkarten&#10;__ Spielfiguren&#10;__ Würfel&#10;..." oninput="onTextarea(this,'c-material')"></textarea>
+    <div class="counter" id="c-material">0 / 300 Zeichen</div>
+    <!-- Auto-Bilder -->
+    <div class="auto-image-box" id="mat-board-box" style="display:none">
+      <img id="mat-board-img" src="" alt="Spielbrett" onerror="this.parentElement.style.display='none'">
+      <div class="img-caption">Das Spielbrett</div>
+    </div>
+    <div class="auto-image-box" id="mat-card-box" style="display:none">
+      <img id="mat-card-img" src="" alt="Beispielkarte" onerror="this.parentElement.style.display='none'">
+      <div class="img-caption">Beispiel: Spielkarte</div>
+    </div>
+  </div>
+
+  <!-- ===== ABSCHNITT 5: VORBEREITUNG ===== -->
+  <div class="section-card" id="sec-5">
+    <h2><span class="section-num">5</span> Vorbereitung</h2>
+    <div class="hint-box">
+      <strong>💡 Hilfsfragen:</strong>
+      <ul>
+        <li>Was muss vor Spielbeginn aufgebaut, gemischt, verteilt oder bereitgelegt werden?</li>
+        <li>Wo starten die Spielfiguren?</li>
+        <li>Wer bekommt was?</li>
+      </ul>
+    </div>
+    <textarea id="f_vorbereitung" maxlength="1800" data-limit="1800" data-dot="5" rows="6"
+      placeholder="Bevor das Spiel beginnt ..." oninput="onTextarea(this,'c-vorb')"></textarea>
+    <div class="counter" id="c-vorb">0 / 1800 Zeichen</div>
+    <!-- Foto-Auftrag Startaufbau -->
+    <div class="upload-section">
+      <div class="upload-title">📸 Fotoauftrag: Startaufbau</div>
+      <div class="upload-task">Baut euer Spiel so auf, wie es direkt vor dem ersten Spielzug aussehen soll. Fotografiert das Spiel von oben oder leicht schräg. <strong>Keine Gesichter fotografieren – nur das Spielmaterial!</strong></div>
+      <input type="file" id="upload-startaufbau" accept="image/*" onchange="previewUpload(this,'prev-startaufbau','key-startaufbau')">
+      <div class="upload-preview" id="prev-startaufbau"></div>
+    </div>
+  </div>
+
+  <!-- ===== ABSCHNITT 6: SPIELABLAUF ===== -->
+  <div class="section-card" id="sec-6">
+    <h2><span class="section-num">6</span> Spielablauf</h2>
+    <div class="hint-box">
+      <strong>💡 Hilfsfragen:</strong>
+      <ul>
+        <li>Wer beginnt das Spiel?</li>
+        <li>Was passiert in einem Spielzug Schritt für Schritt?</li>
+        <li>In welcher Reihenfolge wird gewürfelt, gezogen, eine Karte gezogen, eine Aufgabe gelöst?</li>
+        <li>Wie viele Aktionen hat man pro Runde?</li>
+      </ul>
+      <div class="extra-hints cluedo-hints">
+        <hr style="margin:6px 0;border-color:#ddd">
+        <ul>
+          <li>Wie kann man sich durch das Spielfeld bewegen?</li>
+          <li>Wie spricht man einen Verdacht aus?</li>
+          <li>Was passiert, wenn jemand einen Verdacht widerlegen kann?</li>
+          <li>Wie wird eine Lösung überprüft?</li>
+        </ul>
+      </div>
+      <div class="extra-hints monopoly-hints">
+        <hr style="margin:6px 0;border-color:#ddd">
+        <ul>
+          <li>Was passiert, wenn man auf ein Kauffeld kommt?</li>
+          <li>Was passiert auf Ereignis- oder Zufallsfeldern?</li>
+          <li>Wie bekommt man Punkte oder Geld?</li>
+        </ul>
+      </div>
+    </div>
+    <textarea id="f_spielablauf" maxlength="3800" data-limit="3800" data-dot="6" rows="10"
+      placeholder="So verläuft ein Spielzug:&#10;1. ...&#10;2. ...&#10;3. ..." oninput="onTextarea(this,'c-ablauf')"></textarea>
+    <div class="counter" id="c-ablauf">0 / 3.800 Zeichen</div>
+  </div>
+
+  <!-- ===== ABSCHNITT 7: FELDER, KARTEN, AKTIONEN ===== -->
+  <div class="section-card" id="sec-7">
+    <h2><span class="section-num">7</span> Felder, Karten und Aktionen</h2>
+    <div class="hint-box">
+      <strong>💡 Hilfsfragen:</strong>
+      <ul>
+        <li>Welche Feldarten gibt es? (z. B. Kauffeld, Ereignisfeld, Bonusfeld, Straffeld ...)</li>
+        <li>Welche Kartenarten gibt es?</li>
+        <li>Was passiert auf besonderen Feldern?</li>
+        <li>Was steht auf den Karten?</li>
+      </ul>
+      <div class="extra-hints cluedo-hints">
+        <hr style="margin:6px 0;border-color:#ddd">
+        <ul>
+          <li>Welche Hinweiskarten oder Beweismittel gibt es?</li>
+          <li>Welche Räume oder Orte hat das Spielfeld?</li>
+        </ul>
+      </div>
+      <div class="extra-hints monopoly-hints">
+        <hr style="margin:6px 0;border-color:#ddd">
+        <ul>
+          <li>Welche Felder kann man kaufen?</li>
+          <li>Was kostet ein Feld?</li>
+          <li>Was passiert, wenn man auf ein besetztes Feld kommt?</li>
+        </ul>
+      </div>
+    </div>
+    <textarea id="f_felder" maxlength="2400" data-limit="2400" data-dot="7" rows="8"
+      placeholder="Feldarten:&#10;• Normales Feld: ...&#10;• Ereignisfeld: ...&#10;&#10;Kartenarten:&#10;• ..." oninput="onTextarea(this,'c-felder')"></textarea>
+    <div class="counter" id="c-felder">0 / 2.400 Zeichen</div>
+    <!-- Auto-Karte -->
+    <div class="auto-image-box" id="felder-card-box" style="display:none">
+      <img id="felder-card-img" src="" alt="Beispielkarte" onerror="this.parentElement.style.display='none'">
+      <div class="img-caption">Beispiel: Spielkarte</div>
+    </div>
+    <!-- Umwelt: Zeitstrahl -->
+    <div class="auto-image-box" id="zeitstrahl-box" style="display:none">
+      <img id="zeitstrahl-img" src="" alt="Zahlenstrahl" onerror="this.parentElement.style.display='none'">
+      <div class="img-caption">Spielstand-Anzeige (Zahlenstrahl) – Umweltspiel</div>
+    </div>
+  </div>
+
+  <!-- ===== ABSCHNITT 8: AUFGABEN & LÖSUNGEN ===== -->
+  <div class="section-card" id="sec-8">
+    <h2><span class="section-num">8</span> Aufgaben und Lösungen</h2>
+    <div class="hint-box">
+      <strong>💡 Hilfsfragen:</strong>
+      <ul>
+        <li>Welche Aufgaben müssen gelöst werden?</li>
+        <li>Wie wird kontrolliert, ob eine Antwort richtig ist?</li>
+        <li>Was passiert bei einer richtigen Antwort?</li>
+        <li>Was passiert bei einer falschen Antwort?</li>
+      </ul>
+    </div>
+    <textarea id="f_aufgaben" maxlength="1000" data-limit="1000" data-dot="8" rows="5"
+      placeholder="Aufgaben:&#10;Richtige Antwort:&#10;Falsche Antwort:" oninput="onTextarea(this,'c-aufgaben')"></textarea>
+    <div class="counter" id="c-aufgaben">0 / 1.000 Zeichen</div>
+  </div>
+
+  <!-- ===== ABSCHNITT 9: BESONDERE REGELN ===== -->
+  <div class="section-card" id="sec-9">
+    <h2><span class="section-num">9</span> Besondere Regeln</h2>
+    <div class="hint-box">
+      <strong>💡 Hilfsfragen:</strong>
+      <ul>
+        <li id="hint-9-base">Gibt es Strafen, Bonusfelder, Aussetzen, Käufe oder andere Sonderregeln?</li>
+      </ul>
+      <div class="extra-hints cluedo-hints">
+        <hr style="margin:6px 0;border-color:#ddd">
+        <ul>
+          <li>Was passiert bei einem falschen Verdacht?</li>
+          <li>Kann man aus dem Spiel ausscheiden?</li>
+        </ul>
+      </div>
+      <div class="extra-hints monopoly-hints">
+        <hr style="margin:6px 0;border-color:#ddd">
+        <ul>
+          <li>Gibt es ein Gefängnis oder Aussetzen?</li>
+          <li>Was passiert auf dem LOS-Feld?</li>
+          <li>Gibt es Ereignis- oder Gemeinschaftskarten?</li>
+        </ul>
+      </div>
+    </div>
+    <textarea id="f_sonderregeln" maxlength="1300" data-limit="1300" data-dot="9" rows="5"
+      placeholder="Besondere Regeln:&#10;•" oninput="onTextarea(this,'c-sonder')"></textarea>
+    <div class="counter" id="c-sonder">0 / 1.300 Zeichen</div>
+    <!-- Foto Sonderregel -->
+    <div class="upload-section">
+      <div class="upload-title">📸 Fotoauftrag: Besondere Spielsituation</div>
+      <div class="upload-task">Zeigt eine besondere Spielsituation – z. B. Strafe, Bonusfeld, Ereigniskarte, Zahlenstrahl oder Kauf. <strong>Keine Gesichter – nur Spielmaterial!</strong></div>
+      <input type="file" id="upload-sonder" accept="image/*" onchange="previewUpload(this,'prev-sonder','key-sonder')">
+      <div class="upload-preview" id="prev-sonder"></div>
+    </div>
+  </div>
+
+  <!-- ===== ABSCHNITT 10: SPIELENDE & GEWINNER ===== -->
+  <div class="section-card" id="sec-10">
+    <h2><span class="section-num">10</span> Spielende und Gewinner</h2>
+    <div class="hint-box">
+      <strong>💡 Hilfsfragen:</strong>
+      <ul>
+        <li>Wann endet das Spiel?</li>
+        <li>Wie wird der Gewinner bestimmt?</li>
+        <li>Was passiert bei Gleichstand?</li>
+      </ul>
+    </div>
+    <textarea id="f_spielende" maxlength="800" data-limit="800" data-dot="10" rows="4"
+      placeholder="Das Spiel endet, wenn ..." oninput="onTextarea(this,'c-ende')"></textarea>
+    <div class="counter" id="c-ende">0 / 800 Zeichen</div>
+    <!-- Optionales Foto Spielende -->
+    <div class="upload-section">
+      <div class="upload-title">📸 Optional: Foto des Spielendes</div>
+      <div class="upload-task">Zeigt, woran man erkennt, dass das Spiel vorbei ist oder wer gewonnen hat. <strong>Keine Gesichter!</strong></div>
+      <input type="file" id="upload-ende" accept="image/*" onchange="previewUpload(this,'prev-ende','key-ende')">
+      <div class="upload-preview" id="prev-ende"></div>
+    </div>
+  </div>
+
+  <!-- ===== ABSCHNITT 11: BEISPIELZUG ===== -->
+  <div class="section-card" id="sec-11">
+    <h2><span class="section-num">11</span> Beispielzug</h2>
+    <div class="hint-box">
+      <strong>💡 Hilfsfragen:</strong>
+      <ul>
+        <li>Beschreibt einen vollständigen Spielzug.</li>
+        <li>Was macht eine Spielerin oder ein Spieler Schritt für Schritt?</li>
+        <li>Nutzt echte Beispiele aus eurem Spiel.</li>
+      </ul>
+    </div>
+    <textarea id="f_beispielzug" maxlength="900" data-limit="900" data-dot="11" rows="5"
+      placeholder="Beispiel: Mia ist an der Reihe.&#10;1. Sie würfelt eine 4 und zieht 4 Felder vor.&#10;2. ..." oninput="onTextarea(this,'c-beispiel')"></textarea>
+    <div class="counter" id="c-beispiel">0 / 900 Zeichen</div>
+    <!-- Foto Beispielzug -->
+    <div class="upload-section">
+      <div class="upload-title">📸 Fotoauftrag: Nachgestellter Beispielzug</div>
+      <div class="upload-task">Stellt einen typischen Spielzug nach – z. B. Würfeln, Ziehen, Karte ziehen, Aufgabe lösen, Punkte erhalten. <strong>Keine Gesichter – nur Hände und Spielmaterial!</strong></div>
+      <input type="file" id="upload-beispiel" accept="image/*" onchange="previewUpload(this,'prev-beispiel','key-beispiel')">
+      <div class="upload-preview" id="prev-beispiel"></div>
+    </div>
+  </div>
+
+  <!-- ===== ABSCHNITT 12: VARIANTEN ===== -->
+  <div class="section-card" id="sec-12">
+    <h2><span class="section-num">12</span> Varianten</h2>
+    <div class="hint-box">
+      <strong>💡 Hilfsfragen:</strong>
+      <ul>
+        <li>Gibt es eine kürzere Version des Spiels?</li>
+        <li>Gibt es eine Teamversion?</li>
+        <li>Gibt es eine leichtere oder schwierigere Version?</li>
+        <li>Wenn ihr keine Varianten habt, schreibt: „Keine Varianten vorhanden."</li>
+      </ul>
+    </div>
+    <textarea id="f_varianten" maxlength="700" data-limit="700" data-dot="12" rows="4"
+      placeholder="Kürzere Version:&#10;Teamversion:&#10;Schwierigere Version:" oninput="onTextarea(this,'c-varianten')"></textarea>
+    <div class="counter" id="c-varianten">0 / 700 Zeichen</div>
+  </div>
+
+</div><!-- /editor-wrap -->
+
+<!-- ===== DRUCKVORSCHAU ===== -->
+<div class="print-preview-wrap" id="printPreview">
+
+  <!-- SEITE 1: Deckblatt -->
+  <div class="print-page" id="pp1">
+    <div class="cover-accent-bar" style="height:8px;margin-bottom:10mm;background:linear-gradient(90deg,var(--primary),var(--accent))"></div>
+    <div class="cover-game-title" id="pp-gamename">Spielname</div>
+    <div class="cover-subtitle" id="pp-subtitle">Spielanleitung</div>
+    <div id="pp-board-wrap" style="text-align:center;margin-bottom:8mm">
+      <img class="cover-board-img" id="pp-board-img" src="" alt="Spielbrett" style="display:none" onerror="this.style.display='none';document.getElementById('pp-board-ph').style.display='flex'">
+      <div class="cover-board-placeholder" id="pp-board-ph" style="display:none">Spielbrett (wird automatisch eingefügt)</div>
+    </div>
+    <div class="cover-accent-bar"></div>
+    <div class="cover-meta-grid">
+      <div class="cover-meta-item"><strong>Team:</strong> <span id="pp-team">–</span></div>
+      <div class="cover-meta-item"><strong>Fach / Thema:</strong> <span id="pp-fach">–</span></div>
+      <div class="cover-meta-item"><strong>Zielgruppe:</strong> <span id="pp-zielgruppe">–</span></div>
+      <div class="cover-meta-item"><strong>Spieleranzahl:</strong> <span id="pp-spa">–</span></div>
+      <div class="cover-meta-item"><strong>Spieldauer:</strong> <span id="pp-dauer">–</span></div>
+    </div>
+    <div class="p-footer">
+      <span id="pp-footer-gamename">Spielanleitung</span>
+      <span>Seite 1 von 8</span>
+    </div>
+    <div class="overflow-indicator" id="ov1">⚠ Seite 1 läuft über – bitte Bildgröße oder Text prüfen.</div>
+  </div>
+
+  <!-- SEITE 2: Spielidee, Ziel, Lernziel, Material -->
+  <div class="print-page" id="pp2">
+    <div class="p-header"><span class="p-gamename" id="ph2-name">Spielanleitung</span><span class="p-pagenum">Seite 2 von 8</span></div>
+    <div class="p-h2">1. Spielidee</div>
+    <div class="p-text" id="pp-spielidee"><span class="p-empty">Dieser Abschnitt wurde noch nicht ausgefüllt.</span></div>
+    <div class="p-h2">2. Ziel des Spiels</div>
+    <div class="p-text" id="pp-spielziel"><span class="p-empty">Dieser Abschnitt wurde noch nicht ausgefüllt.</span></div>
+    <div class="p-two-col">
+      <div>
+        <div class="p-h3">3. Lernziel</div>
+        <div class="p-text" id="pp-lernziel"><span class="p-empty">Dieser Abschnitt wurde noch nicht ausgefüllt.</span></div>
+        <div class="p-h3">4. Spielmaterial</div>
+        <div class="p-text" id="pp-material"><span class="p-empty">Dieser Abschnitt wurde noch nicht ausgefüllt.</span></div>
+      </div>
+      <div>
+        <div class="p-img-wrap">
+          <img id="pp-mat-card" src="" alt="Beispielkarte" style="display:none" onerror="this.style.display='none'">
+          <div class="p-img-caption">Beispielkarte</div>
+        </div>
+      </div>
+    </div>
+    <div class="p-footer"><span id="ph2-footer">Spielanleitung</span><span>Seite 2 von 8</span></div>
+    <div class="overflow-indicator" id="ov2">⚠ Seite 2 läuft über.</div>
+  </div>
+
+  <!-- SEITE 3: Vorbereitung -->
+  <div class="print-page" id="pp3">
+    <div class="p-header"><span class="p-gamename" id="ph3-name">Spielanleitung</span><span class="p-pagenum">Seite 3 von 8</span></div>
+    <div class="p-h2">5. Vorbereitung</div>
+    <div class="p-two-col">
+      <div>
+        <div class="p-text" id="pp-vorbereitung"><span class="p-empty">Dieser Abschnitt wurde noch nicht ausgefüllt.</span></div>
+      </div>
+      <div>
+        <div class="p-img-wrap">
+          <img id="pp-vorb-board" src="" alt="Spielbrett" style="display:none" onerror="this.style.display='none'">
+          <div class="p-img-caption">Das Spielbrett</div>
+        </div>
+        <div class="p-img-wrap" id="pp-startaufbau-wrap" style="display:none">
+          <img id="pp-startaufbau" src="" alt="Startaufbau">
+          <div class="p-img-caption">📸 Startaufbau</div>
+        </div>
+        <div class="p-img-missing" id="pp-startaufbau-miss">📸 Startaufbau-Foto noch nicht eingefügt</div>
+      </div>
+    </div>
+    <div class="p-footer"><span id="ph3-footer">Spielanleitung</span><span>Seite 3 von 8</span></div>
+    <div class="overflow-indicator" id="ov3">⚠ Seite 3 läuft über.</div>
+  </div>
+
+  <!-- SEITE 4: Spielablauf -->
+  <div class="print-page" id="pp4">
+    <div class="p-header"><span class="p-gamename" id="ph4-name">Spielanleitung</span><span class="p-pagenum">Seite 4 von 8</span></div>
+    <div class="p-h2">6. Spielablauf</div>
+    <div class="p-text" id="pp-spielablauf"><span class="p-empty">Dieser Abschnitt wurde noch nicht ausgefüllt.</span></div>
+    <div class="p-footer"><span id="ph4-footer">Spielanleitung</span><span>Seite 4 von 8</span></div>
+    <div class="overflow-indicator" id="ov4">⚠ Seite 4 läuft über.</div>
+  </div>
+
+  <!-- SEITE 5: Felder, Karten, Aktionen -->
+  <div class="print-page" id="pp5">
+    <div class="p-header"><span class="p-gamename" id="ph5-name">Spielanleitung</span><span class="p-pagenum">Seite 5 von 8</span></div>
+    <div class="p-h2">7. Felder, Karten und Aktionen</div>
+    <div class="p-two-col">
+      <div>
+        <div class="p-text" id="pp-felder"><span class="p-empty">Dieser Abschnitt wurde noch nicht ausgefüllt.</span></div>
+      </div>
+      <div>
+        <div class="p-img-wrap">
+          <img id="pp-felder-card" src="" alt="Spielkarte" style="display:none" onerror="this.style.display='none'">
+          <div class="p-img-caption">Beispielkarte</div>
+        </div>
+        <div class="p-img-wrap" id="pp-zeitstrahl-wrap" style="display:none">
+          <img id="pp-zeitstrahl" src="" alt="Zahlenstrahl" onerror="this.style.display='none'">
+          <div class="p-img-caption">Der Zahlenstrahl</div>
+        </div>
+      </div>
+    </div>
+    <div class="p-footer"><span id="ph5-footer">Spielanleitung</span><span>Seite 5 von 8</span></div>
+    <div class="overflow-indicator" id="ov5">⚠ Seite 5 läuft über.</div>
+  </div>
+
+  <!-- SEITE 6: Aufgaben, Lösungen, Sonderregeln -->
+  <div class="print-page" id="pp6">
+    <div class="p-header"><span class="p-gamename" id="ph6-name">Spielanleitung</span><span class="p-pagenum">Seite 6 von 8</span></div>
+    <div class="p-h2">8. Aufgaben und Lösungen</div>
+    <div class="p-text" id="pp-aufgaben"><span class="p-empty">Dieser Abschnitt wurde noch nicht ausgefüllt.</span></div>
+    <div class="p-h2">9. Besondere Regeln</div>
+    <div class="p-two-col">
+      <div>
+        <div class="p-text" id="pp-sonder"><span class="p-empty">Dieser Abschnitt wurde noch nicht ausgefüllt.</span></div>
+      </div>
+      <div>
+        <div class="p-img-wrap" id="pp-sonder-wrap" style="display:none">
+          <img id="pp-sonder-img" src="" alt="Besondere Situation">
+          <div class="p-img-caption">📸 Besondere Spielsituation</div>
+        </div>
+        <div class="p-img-missing" id="pp-sonder-miss">📸 Foto noch nicht eingefügt</div>
+      </div>
+    </div>
+    <div class="p-footer"><span id="ph6-footer">Spielanleitung</span><span>Seite 6 von 8</span></div>
+    <div class="overflow-indicator" id="ov6">⚠ Seite 6 läuft über.</div>
+  </div>
+
+  <!-- SEITE 7: Spielende, Gewinner, Beispielzug -->
+  <div class="print-page" id="pp7">
+    <div class="p-header"><span class="p-gamename" id="ph7-name">Spielanleitung</span><span class="p-pagenum">Seite 7 von 8</span></div>
+    <div class="p-h2">10. Spielende und Gewinner</div>
+    <div class="p-text" id="pp-spielende"><span class="p-empty">Dieser Abschnitt wurde noch nicht ausgefüllt.</span></div>
+    <div class="p-h2">11. Beispielzug</div>
+    <div class="p-two-col">
+      <div>
+        <div class="p-text" id="pp-beispielzug"><span class="p-empty">Dieser Abschnitt wurde noch nicht ausgefüllt.</span></div>
+      </div>
+      <div>
+        <div class="p-img-wrap" id="pp-beispiel-wrap" style="display:none">
+          <img id="pp-beispiel-img" src="" alt="Beispielzug">
+          <div class="p-img-caption">📸 Nachgestellter Beispielzug</div>
+        </div>
+        <div class="p-img-missing" id="pp-beispiel-miss">📸 Foto noch nicht eingefügt</div>
+      </div>
+    </div>
+    <div class="p-footer"><span id="ph7-footer">Spielanleitung</span><span>Seite 7 von 8</span></div>
+    <div class="overflow-indicator" id="ov7">⚠ Seite 7 läuft über.</div>
+  </div>
+
+  <!-- SEITE 8: Varianten + Abschluss -->
+  <div class="print-page" id="pp8">
+    <div class="p-header"><span class="p-gamename" id="ph8-name">Spielanleitung</span><span class="p-pagenum">Seite 8 von 8</span></div>
+    <div class="p-h2">12. Varianten</div>
+    <div class="p-text" id="pp-varianten"><span class="p-empty">Dieser Abschnitt wurde noch nicht ausgefüllt.</span></div>
+    <div class="final-box" style="margin-top:10mm">
+      <p>🎲 Jetzt könnt ihr das Spiel testen!</p>
+      <small>Viel Spaß beim Spielen – und danke, dass ihr dieses Lernspiel entwickelt habt.</small>
+    </div>
+    <div class="p-footer"><span id="ph8-footer">Spielanleitung</span><span>Seite 8 von 8</span></div>
+    <div class="overflow-indicator" id="ov8">⚠ Seite 8 läuft über.</div>
+  </div>
+
+</div><!-- /print-preview-wrap -->
+<script>
+// =====================================================================
+// GAME_PROFILES – Spielprofile mit Farben, Assets und Hilfstexten
+// BILDPFADE ANPASSEN: Suche nach "assets/" und passe die Pfade an,
+// wenn die Dateien in einem anderen Unterordner liegen.
+// =====================================================================
+const GAME_PROFILES = {
+
+  officePanik: {
+    id: "officePanik",
+    displayName: "The Office Panic",
+    gameType: "Cluedo-orientiertes Lernspiel (Räume, Aufträge, Ereignisse)",
+    spielTypClass: "cluedo-mode",
+    theme: {
+      primary:        "#1C1C1C",   // Anthrazit/Schwarz (Spielbrett-Hintergrund)
+      secondary:      "#3A3530",   // Dunkelbraun-Grau
+      accent:         "#C4A882",   // Sandbeige / Goldton
+      background:     "#F0EBE3",   // Cremeweiß
+      card:           "#FDFAF6",   // Helles Beige
+      text:           "#1C1C1C",
+      border:         "#8B7355",   // Warmes Braun
+      hintBg:         "#F5EFE6"
+    },
+    assets: {
+      board:       "assets/office-panik/board.jpg",
+      exampleCard: "assets/office-panik/card.jpg",
+      extraAsset:  null
+    },
+    labels: { extraAssetLabel: "" },
+    hints: {
+      spielidee:    "Worum geht es in eurem Büro-Spiel? Welche Abteilungen gibt es? Welcher Auftrag muss erfüllt werden?",
+      spielziel:    "Was müsst ihr herausfinden oder erreichen? Wer endet das Spiel zuerst?",
+      spielablauf:  "Wie bewegt ihr euch durch das Büro? Was passiert in den einzelnen Räumen?",
+      felderUndKarten: "Welche Räume gibt es (Werbung, Kaufvertrag, Buchhaltung ...)? Was passiert dort? Welche Ereigniskarten gibt es?",
+      sonderregeln: "Gibt es besondere Ereignisse, Strafen oder Boni im Büroalltag?"
+    }
+  },
+
+  numeria: {
+    id: "numeria",
+    displayName: "Numeria",
+    gameType: "Monopoly-orientiertes Lernspiel (Stadtfelder kaufen, Punkte sammeln)",
+    spielTypClass: "monopoly-mode",
+    theme: {
+      primary:        "#1E3A5F",   // Dunkelblau (Fantasy-Himmel)
+      secondary:      "#2C6B8A",   // Mittelblau
+      accent:         "#C9A84C",   // Gold (Schriftrolle/Titel)
+      background:     "#F5F0E8",   // Pergament
+      card:           "#EDE0C4",   // Altes Papier
+      text:           "#1A2A1A",
+      border:         "#8B6914",   // Goldbraun
+      hintBg:         "#EDF2F8"
+    },
+    assets: {
+      board:       "assets/numeria/board.jpg",
+      exampleCard: "assets/numeria/card.jpg",
+      extraAsset:  null
+    },
+    labels: { extraAssetLabel: "" },
+    hints: {
+      spielidee:    "Numeria ist eine Fantasy-Stadt voller Rätsel. Welche Geschichte steckt dahinter? Was ist die Bedrohung durch 'Minus'?",
+      spielziel:    "Wer rettet Numeria? Wie viele Punkte braucht man? Welche Gebäude muss man kaufen?",
+      spielablauf:  "Wie bewegt man sich auf dem Lauffeld? Was passiert, wenn man auf ein Gebäude- oder Ereignisfeld kommt?",
+      felderUndKarten: "Welche Gebäude gibt es (Krankenhaus, Schule, Rathaus ...)? Was kosten sie? Welche Fächer (Mathe, Deutsch, Englisch ...) sind vertreten?",
+      sonderregeln: "Was passiert auf den 'Zerstörung'-Feldern? Gibt es Sonderfelder oder Ereignisse?"
+    }
+  },
+
+  imperium: {
+    id: "imperium",
+    displayName: "Imperium der Zahlen",
+    gameType: "Monopoly-orientiertes Lernspiel (Straßen kaufen, Matheaufgaben lösen)",
+    spielTypClass: "monopoly-mode",
+    theme: {
+      primary:        "#8B1515",   // Monopoly-Rot (Titelleiste)
+      secondary:      "#1565C0",   // Klassisches Monopoly-Blau
+      accent:         "#FF8C00",   // Orange (Ereigniskarte)
+      background:     "#F5F5F0",   // Hellgrau
+      card:           "#FFFFFF",
+      text:           "#1A1A1A",
+      border:         "#8B1515",
+      hintBg:         "#FFF5F5"
+    },
+    assets: {
+      board:       "assets/imperium/board.jpg",
+      exampleCard: "assets/imperium/card.jpg",
+      extraAsset:  "assets/imperium/card_back.jpg"
+    },
+    labels: { extraAssetLabel: "Kartenrückseite – Imperium der Zahlen" },
+    hints: {
+      spielidee:    "Imperium der Zahlen ist ein Monopoly-Klon für die 8. Klasse. Erklärt, was das Besondere ist – Matheaufgaben statt Kaufpreis!",
+      spielziel:    "Wer kauft die meisten Straßen? Wer löst die meisten Aufgaben korrekt?",
+      spielablauf:  "Wie verläuft ein Spielzug? Wann muss man eine Matheaufgabe lösen? Was passiert bei LOS?",
+      felderUndKarten: "Welche Straßen gibt es (Mathe-Allee, Rechenweg ...)? Was passiert auf dem Ereignis- oder Zufallsfeld? Was steht auf den Karten?",
+      sonderregeln: "Was passiert im Gefängnis? Was ist 'Frei Parken'? Was passiert auf dem Gemeinschaftsfeld?"
+    }
+  },
+
+  umwelt: {
+    id: "umwelt",
+    displayName: "Umweltspiel",
+    gameType: "Monopoly-orientiertes Lernspiel (Umweltthemen, Zahlenstrahl)",
+    spielTypClass: "monopoly-mode",
+    theme: {
+      primary:        "#2E7D32",   // Dunkelgrün
+      secondary:      "#1565C0",   // Blau (Meer)
+      accent:         "#F57C00",   // Orange (Fabrik)
+      background:     "#F1F8E9",   // Hellgrün
+      card:           "#FFFFFF",
+      text:           "#1B5E20",
+      border:         "#2E7D32",
+      hintBg:         "#E8F5E9"
+    },
+    assets: {
+      board:       "assets/umwelt/board.jpg",
+      exampleCard: "assets/umwelt/card.jpg",
+      extraAsset:  "assets/umwelt/zeitstrahl.jpg"
+    },
+    labels: { extraAssetLabel: "Der Zahlenstrahl (Umweltspiel)" },
+    hints: {
+      spielidee:    "Erklärt das Umwelt-Thema eures Spiels. Was bedeutet 'Gemeinsam für eine bessere Welt'?",
+      spielziel:    "Wer gewinnt? Wer landet als Erstes bei 'Zukunft'? Was muss man auf dem Weg sammeln oder erreichen?",
+      spielablauf:  "Was passiert auf WALD-, MEER-, FABRIK-, PARK- oder EREIGNISFELDERN? Wann muss man auf den Zahlenstrahl schauen?",
+      felderUndKarten: "Erklärt alle Feldtypen (Wald, Meer, Stadt, Park, Fabrik, Ereignisfeld). Was passiert beim Ziehen einer Problemkarte oder Lösungskarte?",
+      sonderregeln: "Was passiert bei 'LOS'/'ZUSAMMEN'/'NEUER ANFANG'? Gibt es Strafen oder Umwelt-Boni?"
+    }
+  },
+
+  math: {
+    id: "math",
+    displayName: "Math",
+    gameType: "Laufspiel (Zahlenfelder 1–49, Matheaufgaben, Tafel-Design)",
+    spielTypClass: "monopoly-mode",
+    theme: {
+      primary:        "#1A4FC4",   // Königsblau (Spielfelder)
+      secondary:      "#0A0A1E",   // Fast-Schwarz (Tafel-Hintergrund)
+      accent:         "#4AADFF",   // Hellblau (Schrift-Akzent)
+      background:     "#0D1120",   // Tafel-Dunkelblau
+      card:           "#1A2040",   // Dunkelblau Karte
+      text:           "#FFFFFF",
+      border:         "#1A4FC4",
+      hintBg:         "#111830"
+    },
+    assets: {
+      board:       "assets/math/board.jpg",
+      exampleCard: null,
+      extraAsset:  null
+    },
+    labels: { extraAssetLabel: "" },
+    hints: {
+      spielidee:    "Math ist ein Zahlen-Laufspiel auf einer Schultafel. Erklärt die Spielidee kurz und prägnant.",
+      spielziel:    "Wer erreicht als Erster Feld 49 (ZIEL)?",
+      spielablauf:  "Was passiert auf jedem Feld? Wann muss man eine Aufgabe lösen? Was passiert bei blauen Feldern?",
+      felderUndKarten: "Welche Sonderfelder gibt es? Was passiert auf blauen vs. weißen Feldern?",
+      sonderregeln: "Gibt es Rückwärtsfelder? Was passiert, wenn man eine Aufgabe falsch löst?"
+    }
+  },
+
+  matherennen: {
+    id: "matherennen",
+    displayName: "Matherennen",
+    gameType: "Rennspiel (Kreisbahn, Matheaufgaben-Karten, Punkte)",
+    spielTypClass: "monopoly-mode",
+    theme: {
+      primary:        "#1A1DC8",   // Dunkelblau (Spielfelder/Kreise)
+      secondary:      "#E63030",   // Rot (Start/Ziel)
+      accent:         "#00CED1",   // Türkis (Sonderfelder +2)
+      background:     "#F4F5FF",   // Hellblau-Weiß
+      card:           "#FFFFFF",
+      text:           "#0A0A2A",
+      border:         "#1A1DC8",
+      hintBg:         "#EEF0FF"
+    },
+    assets: {
+      board:       "assets/matherennen/board.jpg",
+      exampleCard: "assets/matherennen/card.jpg",
+      extraAsset:  null
+    },
+    labels: { extraAssetLabel: "" },
+    hints: {
+      spielidee:    "Matherennen ist ein Rennspiel auf einer Kreisbahn. Erklärt, wie man gewinnt und warum es ein Rennen ist.",
+      spielziel:    "Wer erreicht als Erster das ZIEL? Was zählt: Geschwindigkeit oder korrekte Antworten?",
+      spielablauf:  "Wie zieht man? Was passiert beim Ziehen einer Aufgabenkarte? Wann kommt die 'Ablage' oder das 'Ziehen'-Feld?",
+      felderUndKarten: "Was bedeuten die Felder +2 und -2? Was steht auf den Karten (Rechteck, Dreieck, Viereck ...)?",
+      sonderregeln: "Was passiert auf dem Tauschfeld? Gibt es besondere Regeln für Gleichstand?"
+    }
+  }
+
+}; // Ende GAME_PROFILES
+
+// =====================================================================
+// TEXT_LIMITS – Zeichenbegrenzungen pro Textfeld
+// ANPASSEN: Ändere hier die Werte, um Limits zu erhöhen oder zu senken.
+// =====================================================================
+const TEXT_LIMITS = {
+  teammitglieder: 120,
+  fachThema:      120,
+  zielgruppe:     120,
+  spieleranzahl:  80,
+  spieldauer:     80,
+  spielidee:      900,
+  spielziel:      600,
+  lernziel:       500,
+  material:       300,
+  vorbereitung:   1800,
+  spielablauf:    3800,
+  felderKartenAktionen: 2400,
+  aufgabenLoesungen:    1000,
+  sonderregeln:   1300,
+  spielendeGewinner:    800,
+  beispielzug:    900,
+  varianten:      700
+};
+const TOTAL_TEXT_LIMIT = 15500;
+
+// =====================================================================
+// HILFSFUNKTIONEN
+// =====================================================================
+
+// HTML-Sonderzeichen escapen
+function esc(str) {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Text für Druckvorschau: leer -> Platzhalter
+function printText(id, emptyMsg) {
+  const el = document.getElementById(id);
+  if (!el) return '';
+  const val = el.value ? el.value.trim() : '';
+  if (!val) return '<span class="p-empty">' + esc(emptyMsg || 'Dieser Abschnitt wurde noch nicht ausgefüllt.') + '</span>';
+  return esc(val).replace(/\n/g, '<br>');
+}
+
+// Zeichenzähler aktualisieren
+function updateCounter(fieldId, counterId, limit) {
+  const field = document.getElementById(fieldId);
+  const counter = document.getElementById(counterId);
+  if (!field || !counter) return;
+  const len = field.value.length;
+  counter.textContent = len.toLocaleString('de') + ' / ' + limit.toLocaleString('de') + ' Zeichen';
+  counter.classList.remove('warn','max');
+  if (len >= limit) { counter.classList.add('max'); }
+  else if (len >= limit * 0.8) { counter.classList.add('warn'); }
+}
+
+// Input-Event für Felder ohne textarea
+function onFieldInput(el, counterId) {
+  const limit = parseInt(el.dataset.limit) || 120;
+  const len = el.value.length;
+  const counter = document.getElementById(counterId);
+  if (counter) {
+    counter.textContent = len + ' / ' + limit + ' Zeichen';
+    counter.classList.remove('warn','max');
+    if (len >= limit) counter.classList.add('max');
+    else if (len >= limit * 0.8) counter.classList.add('warn');
+  }
+  updateTotalCount();
+  updateProgressDots();
+  autoSave();
+}
+
+// Textarea Input-Event
+function onTextarea(el, counterId) {
+  const limit = parseInt(el.dataset.limit) || 500;
+  updateCounter(el.id, counterId, limit);
+  updateTotalCount();
+  updateProgressDots();
+  autoSave();
+}
+
+// Gesamtzeichenzähler
+function updateTotalCount() {
+  const textIds = ['f_spielidee','f_spielziel','f_lernziel','f_material',
+    'f_vorbereitung','f_spielablauf','f_felder','f_aufgaben',
+    'f_sonderregeln','f_spielende','f_beispielzug','f_varianten',
+    'f_teammitglieder','f_fachthema','f_zielgruppe','f_spieleranzahl','f_spieldauer'];
+  let total = 0;
+  textIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) total += el.value.length;
+  });
+  const display = document.getElementById('totalCountDisplay');
+  const fill = document.getElementById('totalProgressFill');
+  const warn = document.getElementById('lengthWarn');
+  if (display) {
+    display.textContent = total.toLocaleString('de') + ' / ' + TOTAL_TEXT_LIMIT.toLocaleString('de') + ' Zeichen';
+    display.classList.toggle('total-warn', total > TOTAL_TEXT_LIMIT);
+  }
+  if (fill) {
+    const pct = Math.min(100, (total / TOTAL_TEXT_LIMIT) * 100);
+    fill.style.width = pct + '%';
+    fill.style.background = total > TOTAL_TEXT_LIMIT ? '#DC2626' : total > TOTAL_TEXT_LIMIT * 0.85 ? '#D97706' : 'var(--secondary)';
+  }
+  if (warn) warn.classList.toggle('visible', total > TOTAL_TEXT_LIMIT);
+}
+
+// Fortschrittspunkte
+function updateProgressDots() {
+  const fields = [
+    ['f_teammitglieder'], // dot 0
+    ['f_spielidee'],      // dot 1
+    ['f_spielziel'],      // dot 2
+    ['f_lernziel'],       // dot 3
+    ['f_material'],       // dot 4
+    ['f_vorbereitung'],   // dot 5
+    ['f_spielablauf'],    // dot 6
+    ['f_felder'],         // dot 7
+    ['f_aufgaben'],       // dot 8
+    ['f_sonderregeln'],   // dot 9
+    ['f_spielende'],      // dot 10
+    ['f_beispielzug'],    // dot 11
+    ['f_varianten']       // dot 12
+  ];
+  fields.forEach((fids, i) => {
+    const dot = document.getElementById('dot' + i);
+    if (!dot) return;
+    const filled = fids.some(id => { const el = document.getElementById(id); return el && el.value.trim().length > 0; });
+    dot.classList.toggle('filled', filled);
+  });
+}
+
+// =====================================================================
+// SPIELAUSWAHL – Design und Assets umschalten
+// =====================================================================
+function applyGame(gameId) {
+  const profile = GAME_PROFILES[gameId];
+  if (!profile) {
+    document.getElementById('gameTypeBadge').style.display = 'none';
+    return;
+  }
+  const t = profile.theme;
+  const root = document.documentElement;
+  root.style.setProperty('--primary',    t.primary);
+  root.style.setProperty('--secondary',  t.secondary);
+  root.style.setProperty('--accent',     t.accent);
+  root.style.setProperty('--background', t.background);
+  root.style.setProperty('--card',       t.card);
+  root.style.setProperty('--text',       t.text);
+  root.style.setProperty('--border',     t.border);
+  root.style.setProperty('--hint-bg',    t.hintBg);
+
+  document.getElementById('headerTitle').textContent = '📋 ' + profile.displayName + ' – Spielanleitung';
+  const badge = document.getElementById('gameTypeBadge');
+  badge.textContent = profile.gameType;
+  badge.style.display = 'inline-block';
+
+  // Spieltyp-Klasse (cluedo-mode / monopoly-mode)
+  document.body.classList.remove('cluedo-mode','monopoly-mode');
+  if (profile.spielTypClass) document.body.classList.add(profile.spielTypClass);
+
+  // Board-Bilder
+  setAutoImage('cover-board-img', 'cover-board-placeholder', profile.assets.board, true);
+  setAutoImage('mat-board-img', null, profile.assets.board, true);
+  setAutoImage('mat-card-img', null, profile.assets.exampleCard, true);
+  setAutoImage('felder-card-img', null, profile.assets.exampleCard, true);
+
+  // Umwelt-Zeitstrahl
+  const zeitBox = document.getElementById('zeitstrahl-box');
+  if (zeitBox) {
+    if (profile.assets.extraAsset && profile.id === 'umwelt') {
+      zeitBox.style.display = '';
+      setAutoImage('zeitstrahl-img', null, profile.assets.extraAsset, true);
+    } else {
+      zeitBox.style.display = 'none';
+    }
+  }
+
+  // Material-Boxen zeigen/verbergen
+  document.getElementById('mat-board-box').style.display = profile.assets.board ? '' : 'none';
+  document.getElementById('mat-card-box').style.display = profile.assets.exampleCard ? '' : 'none';
+  document.getElementById('felder-card-box').style.display = profile.assets.exampleCard ? '' : 'none';
+
+  updatePreview();
+}
+
+function setAutoImage(imgId, placeholderId, src, showPlaceholderOnMiss) {
+  const img = document.getElementById(imgId);
+  if (!img) return;
+  if (src) {
+    img.src = src;
+    img.style.display = '';
+    if (placeholderId) document.getElementById(placeholderId).style.display = 'none';
+  } else {
+    img.style.display = 'none';
+    img.src = '';
+    if (placeholderId && showPlaceholderOnMiss) {
+      document.getElementById(placeholderId).style.display = '';
+    }
+  }
+}
+
+document.getElementById('gameSelect').addEventListener('change', function() {
+  applyGame(this.value);
+  saveData();
+});
+
+// =====================================================================
+// UPLOAD-VORSCHAU & localStorage-Speicherung
+// =====================================================================
+const uploadKeys = ['startaufbau','sonder','ende','beispiel'];
+const uploadDataURLs = {};
+
+function previewUpload(input, previewId, key) {
+  const preview = document.getElementById(previewId);
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    uploadDataURLs[key] = e.target.result;
+    preview.innerHTML = '<img src="' + e.target.result + '" alt="Foto">';
+    localStorage.setItem('sla_upload_' + key, e.target.result);
+    updatePreview();
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function loadUploadFromStorage(key, previewId) {
+  const data = localStorage.getItem('sla_upload_' + key);
+  if (data) {
+    uploadDataURLs[key] = data;
+    const prev = document.getElementById(previewId);
+    if (prev) prev.innerHTML = '<img src="' + data + '" alt="Foto">';
+  }
+}
+
+// =====================================================================
+// VORSCHAU AKTUALISIEREN
+// =====================================================================
+function updatePreview() {
+  const gameId = document.getElementById('gameSelect').value;
+  const profile = GAME_PROFILES[gameId] || null;
+  const gameName = profile ? profile.displayName : 'Spielanleitung';
+
+  // Druckvorschau sichtbar
+  const pw = document.getElementById('printPreview');
+  pw.classList.add('visible');
+  pw.style.display = 'block';
+
+  // Spielname überall setzen
+  ['pp-gamename','pp-subtitle'].forEach(id => {
+    const el = document.getElementById(id);
+    if (id === 'pp-gamename' && el) el.textContent = gameName;
+    if (id === 'pp-subtitle' && el) el.textContent = 'Spielanleitung';
+  });
+  ['ph2-name','ph3-name','ph4-name','ph5-name','ph6-name','ph7-name','ph8-name'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.textContent = gameName;
+  });
+  ['pp-footer-gamename','ph2-footer','ph3-footer','ph4-footer','ph5-footer','ph6-footer','ph7-footer','ph8-footer'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.textContent = gameName;
+  });
+
+  // Seite 1: Deckblatt
+  setEl('pp-team',      getVal('f_teammitglieder') || '–');
+  setEl('pp-fach',      getVal('f_fachthema') || '–');
+  setEl('pp-zielgruppe',getVal('f_zielgruppe') || '–');
+  setEl('pp-spa',       getVal('f_spieleranzahl') || '–');
+  setEl('pp-dauer',     getVal('f_spieldauer') || '–');
+
+  // Board-Bild auf Deckblatt
+  const ppBoardImg = document.getElementById('pp-board-img');
+  const ppBoardPh  = document.getElementById('pp-board-ph');
+  if (profile && profile.assets.board) {
+    ppBoardImg.src = profile.assets.board;
+    ppBoardImg.style.display = '';
+    ppBoardPh.style.display = 'none';
+  } else {
+    ppBoardImg.style.display = 'none';
+    ppBoardPh.style.display = 'flex';
+  }
+
+  // Seite 2
+  setHtml('pp-spielidee', printText('f_spielidee'));
+  setHtml('pp-spielziel', printText('f_spielziel'));
+  setHtml('pp-lernziel',  printText('f_lernziel'));
+  setHtml('pp-material',  printText('f_material'));
+  const ppMatCard = document.getElementById('pp-mat-card');
+  if (profile && profile.assets.exampleCard) {
+    ppMatCard.src = profile.assets.exampleCard;
+    ppMatCard.style.display = '';
+  } else {
+    ppMatCard.style.display = 'none';
+  }
+
+  // Seite 3: Vorbereitung
+  setHtml('pp-vorbereitung', printText('f_vorbereitung'));
+  const ppVorbBoard = document.getElementById('pp-vorb-board');
+  if (profile && profile.assets.board) {
+    ppVorbBoard.src = profile.assets.board;
+    ppVorbBoard.style.display = '';
+  } else {
+    ppVorbBoard.style.display = 'none';
+  }
+  setUploadPreview('key-startaufbau', 'pp-startaufbau', 'pp-startaufbau-wrap', 'pp-startaufbau-miss');
+
+  // Seite 4: Spielablauf
+  setHtml('pp-spielablauf', printText('f_spielablauf'));
+
+  // Seite 5: Felder & Karten
+  setHtml('pp-felder', printText('f_felder'));
+  const ppFelderCard = document.getElementById('pp-felder-card');
+  if (profile && profile.assets.exampleCard) {
+    ppFelderCard.src = profile.assets.exampleCard;
+    ppFelderCard.style.display = '';
+  } else {
+    ppFelderCard.style.display = 'none';
+  }
+  // Zeitstrahl
+  const ppZeitrahlWrap = document.getElementById('pp-zeitstrahl-wrap');
+  const ppZeitstrahl   = document.getElementById('pp-zeitstrahl');
+  if (profile && profile.id === 'umwelt' && profile.assets.extraAsset) {
+    ppZeitstrahl.src = profile.assets.extraAsset;
+    ppZeitrahlWrap.style.display = '';
+  } else {
+    ppZeitrahlWrap.style.display = 'none';
+  }
+
+  // Seite 6
+  setHtml('pp-aufgaben', printText('f_aufgaben'));
+  setHtml('pp-sonder',   printText('f_sonderregeln'));
+  setUploadPreview('key-sonder', 'pp-sonder-img', 'pp-sonder-wrap', 'pp-sonder-miss');
+
+  // Seite 7
+  setHtml('pp-spielende',    printText('f_spielende'));
+  setHtml('pp-beispielzug',  printText('f_beispielzug'));
+  setUploadPreview('key-beispiel', 'pp-beispiel-img', 'pp-beispiel-wrap', 'pp-beispiel-miss');
+
+  // Seite 8
+  setHtml('pp-varianten', printText('f_varianten'));
+
+  // Seitenüberlauf prüfen (leichter Delay damit Bilder geladen)
+  setTimeout(validatePrintPages, 400);
+}
+
+function setEl(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+function setHtml(id, html) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = html;
+}
+function getVal(id) {
+  const el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+function setUploadPreview(dataKey, imgId, wrapId, missId) {
+  const data = uploadDataURLs[dataKey];
+  const img  = document.getElementById(imgId);
+  const wrap = document.getElementById(wrapId);
+  const miss = document.getElementById(missId);
+  if (data && img) {
+    img.src = data;
+    if (wrap) wrap.style.display = '';
+    if (miss) miss.style.display = 'none';
+  } else {
+    if (wrap) wrap.style.display = 'none';
+    if (miss) miss.style.display = '';
+  }
+}
+
+// =====================================================================
+// SEITENÜBERLAUF PRÜFEN
+// =====================================================================
+function validatePrintPages() {
+  const overflowMsgs = [];
+  const pages = document.querySelectorAll('.print-page');
+  pages.forEach((page, i) => {
+    const ov = document.getElementById('ov' + (i + 1));
+    if (page.scrollHeight > page.clientHeight + 4) {
+      if (ov) ov.classList.add('visible');
+      overflowMsgs.push('Seite ' + (i + 1));
+    } else {
+      if (ov) ov.classList.remove('visible');
+    }
+  });
+  const errBox = document.getElementById('pageOverflowWarn');
+  if (overflowMsgs.length > 0) {
+    errBox.innerHTML = '⚠️ <strong>Druckseite(n) ' + overflowMsgs.join(', ') + ' laufen über.</strong> Bitte Text kürzen oder Bilder verkleinern.';
+    errBox.classList.add('visible');
+  } else {
+    errBox.classList.remove('visible');
+  }
+}
+
+// =====================================================================
+// SPEICHERN / LADEN / ZURÜCKSETZEN
+// =====================================================================
+const FIELD_IDS = ['f_teammitglieder','f_fachthema','f_zielgruppe','f_spieleranzahl',
+  'f_spieldauer','f_spielidee','f_spielziel','f_lernziel','f_material',
+  'f_vorbereitung','f_spielablauf','f_felder','f_aufgaben',
+  'f_sonderregeln','f_spielende','f_beispielzug','f_varianten'];
+
+function saveData() {
+  const gameId = document.getElementById('gameSelect').value;
+  localStorage.setItem('sla_game', gameId);
+  FIELD_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) localStorage.setItem('sla_' + id, el.value);
+  });
+  showToast('✓ Gespeichert');
+}
+
+let autoSaveTimer = null;
+function autoSave() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(saveData, 1500);
+}
+
+function loadData() {
+  const gameId = localStorage.getItem('sla_game') || '';
+  const select = document.getElementById('gameSelect');
+  if (gameId && select) {
+    select.value = gameId;
+    applyGame(gameId);
+  }
+  FIELD_IDS.forEach(id => {
+    const saved = localStorage.getItem('sla_' + id);
+    const el = document.getElementById(id);
+    if (el && saved !== null) el.value = saved;
+  });
+  // Upload-Vorschauen wiederherstellen
+  ['startaufbau','sonder','ende','beispiel'].forEach(key => {
+    loadUploadFromStorage('key-' + key, 'prev-' + (key === 'startaufbau' ? 'startaufbau' : key));
+  });
+  // Zähler aktualisieren
+  const counters = [
+    ['f_spielidee','c-spielidee',900],['f_spielziel','c-spielziel',600],
+    ['f_lernziel','c-lernziel',500],['f_material','c-material',300],
+    ['f_vorbereitung','c-vorb',1800],['f_spielablauf','c-ablauf',3800],
+    ['f_felder','c-felder',2400],['f_aufgaben','c-aufgaben',1000],
+    ['f_sonderregeln','c-sonder',1300],['f_spielende','c-ende',800],
+    ['f_beispielzug','c-beispiel',900],['f_varianten','c-varianten',700]
+  ];
+  counters.forEach(([fid,cid,lim]) => updateCounter(fid,cid,lim));
+  updateTotalCount();
+  updateProgressDots();
+}
+
+function confirmReset() {
+  if (!confirm('Alle Eingaben löschen? Das kann nicht rückgängig gemacht werden.')) return;
+  FIELD_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; localStorage.removeItem('sla_' + id); }
+  });
+  uploadKeys.forEach(k => {
+    delete uploadDataURLs['key-' + k];
+    localStorage.removeItem('sla_upload_key-' + k);
+    const prev = document.getElementById('prev-' + k);
+    if (prev) prev.innerHTML = '';
+  });
+  localStorage.removeItem('sla_game');
+  document.getElementById('gameSelect').value = '';
+  document.getElementById('gameTypeBadge').style.display = 'none';
+  document.getElementById('headerTitle').textContent = '📋 Spielanleitung-Editor';
+  // Reset CSS vars
+  const root = document.documentElement;
+  root.style.setProperty('--primary','#2C5F2E');
+  root.style.setProperty('--secondary','#4A8F4C');
+  root.style.setProperty('--accent','#F0A500');
+  root.style.setProperty('--background','#F4F8F4');
+  root.style.setProperty('--card','#FFFFFF');
+  root.style.setProperty('--text','#1a2a1a');
+  root.style.setProperty('--border','#2C5F2E');
+  root.style.setProperty('--hint-bg','#EDF7ED');
+  updateTotalCount();
+  updateProgressDots();
+  updatePreview();
+  showToast('Alle Eingaben gelöscht');
+}
+
+// =====================================================================
+// TOAST
+// =====================================================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// =====================================================================
+// INIT
+// =====================================================================
+document.addEventListener('DOMContentLoaded', function() {
+  loadData();
+  // Lade Upload-Vorschauen
+  ['startaufbau','sonder','ende','beispiel'].forEach(key => {
+    const data = localStorage.getItem('sla_upload_key-' + key);
+    if (data) uploadDataURLs['key-' + key] = data;
+  });
+  updatePreview();
+});
+</script>
+</body>
+</html>
